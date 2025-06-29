@@ -1,50 +1,55 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Agora Video Call</title>
-  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
-  <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #000; }
-    #local-player, #remote-player { width: 100%; height: 50%; object-fit: cover; }
-  </style>
-</head>
-<body>
-  <div id="local-player" style="background:#222;"></div>
-  <div id="remote-player" style="background:#444;"></div>
+  <head>
+    <meta charset="UTF-8">
+    <title>Agora Video Call</title>
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; background: #000; }
+      #local-player, #remote-player { width: 100%; height: 50%; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <div id="local-player" style="background:#222;"></div>
+    <div id="remote-player" style="background:#444;"></div>
 
-  <script>
-    const appId = "e83e51e71866447f835e2718859133a0"; // 🔁 שנה ל-App ID שלך
-    const channelName = "testChannel"; // אפשר לשנות לשם אחר
-    const token = null; // אם אתה משתמש ב-token, שים אותו כאן
+    <script>
+      const appId = "e83e51e71866447f835e2718859133a0";
+      const channelName = "testChannel";
+      const token = null;
 
-    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-    let localTrack;
-    let remoteTrack;
+      let localTrack;
+      let remoteTrack;
 
-    async function startCall() {
-      await client.join(appId, channelName, token || null, null);
+      async function startCall() {
+        await client.join(appId, channelName, token || null, null);
+        localTrack = await AgoraRTC.createMicrophoneAndCameraTracks();
+        const localContainer = document.getElementById("local-player");
+        localTrack[1].play(localContainer);
+        await client.publish(localTrack);
 
-      localTrack = await AgoraRTC.createMicrophoneAndCameraTracks();
-      const localContainer = document.getElementById("local-player");
-      localTrack[1].play(localContainer);
+        client.on("user-published", async (user, mediaType) => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === "video") {
+            const remoteContainer = document.getElementById("remote-player");
+            user.videoTrack.play(remoteContainer);
+          }
+          if (mediaType === "audio") {
+            user.audioTrack.play();
+          }
+        });
+      }
 
-      await client.publish(localTrack);
+      startCall();
+    </script>
 
-      client.on("user-published", async (user, mediaType) => {
-        await client.subscribe(user, mediaType);
-        if (mediaType === "video") {
-          const remoteContainer = document.getElementById("remote-player");
-          user.videoTrack.play(remoteContainer);
-        }
-        if (mediaType === "audio") {
-          user.audioTrack.play();
-        }
-      });
-    }
+    <!-- ✅ הוספה פה -->
+    <script>
+      const agent = navigator.userAgent;
+      document.body.insertAdjacentHTML('beforeend', `<p style="color: yellow;">User Agent: ${agent}</p>`);
+    </script>
 
-    startCall();
-  </script>
-</body>
+  </body>
 </html>
